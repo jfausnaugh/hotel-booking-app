@@ -1,9 +1,12 @@
 import pandas as pd
+from fpdf import FPDF
+import time
 
 df = pd.read_csv("hotels.csv", dtype={"id": str})
 df_cards = pd.read_csv("cards.csv", dtype=str).to_dict(orient="records")
 df_cards_security = pd.read_csv("card_security.csv", dtype=str)
 
+today_date = time.strftime("%b %d, %Y")
 
 class Hotel:
     def __init__(self, hotel_id):
@@ -34,7 +37,7 @@ class ReservationTicket:
         self.customer_name = customer_name
         self.hotel = hotel_object
 
-    def generate(self):
+    def generate_message(self):
         content = f"""
         Thank you for your reservation!
         Here is your booking data:
@@ -42,6 +45,34 @@ class ReservationTicket:
         Hotel name: {self.hotel.name}
         """
         return content
+    def generate_invoice(self):
+        pdf = FPDF(orientation="P", unit="mm", format="A4")
+        pdf.add_page()
+
+        pdf.set_font(family="Times", size=16, style="B")
+        pdf.cell(w=50, h=8, txt="Hotel Invoice", ln=1)
+
+        pdf.set_font(family="Times", size=16, style="B")
+        pdf.cell(w=50, h=8, txt=f"Date: {today_date}", ln=1)
+
+        pdf.set_font(family="Times", size=16)
+        pdf.cell(w=50, h=8, txt="Thank you for your reservation. "
+                                "Here is your booking data:", ln=2)
+
+        pdf.set_font(family="Times", size=16, style="B")
+        pdf.cell(w=50, h=8, txt=f"Hotel Name: {self.hotel.name}", ln=1)
+
+        pdf.set_font(family="Times", size=16, style="B")
+        pdf.cell(w=50, h=8, txt=f"Your name: {self.customer_name}", ln=1)
+
+        pdf.set_font(family="Times", size=16, style="B")
+        pdf.cell(w=50, h=8, txt=f"Spa Package: {spa_request}", ln=1)
+
+        pdf.ln(205)
+        pdf.set_font(family="Times", style="I", size=12)
+        pdf.cell(w=0, h=12, txt=self.hotel.name, align="R")
+
+        pdf.output("Hotel_Invoice.pdf")
 
 
 class CreditCard:
@@ -94,17 +125,18 @@ if hotel.available():
             name = input("Enter your name: ")
             reservation_ticket = ReservationTicket(customer_name=name,
                                                    hotel_object=hotel)
-            print(reservation_ticket.generate())
+            print(reservation_ticket.generate_message())
 
             spa_request = input("Do you want to book a spa package? ")
             if spa_request.lower() == "yes":
                 hotel.book_spa_package()
                 spa_ticket = SpaTicket(customer_name=name, hotel_object=hotel)
                 print(spa_ticket.generate())
+
             else:
                 print("Have a great day!")
 
-
+            reservation_ticket.generate_invoice()
         else:
             print("Credit card authentication failed")
     else:
